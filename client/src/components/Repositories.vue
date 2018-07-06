@@ -1,7 +1,11 @@
 <template>
     <b-container>
+        <b-alert :show="showError" variant="danger">{{ errorMessage }}</b-alert>
         <div class="repositories">
             <div class="avatar" v-for="(userInfo, username) in sortedRepositories" :key="username">
+                <b-popover v-if="userInfo.hasOwnProperty('followers')" :target="`${username}-popover`" placement="right"
+                    :title="`${username}'s Followers`" :content="userInfo.followers" triggers="hover" :no-fade="true">
+                </b-popover>
                 <img :id="`${username}-popover`" :src="userInfo.avatarUrl" :alt="username">
             </div>
         </div>
@@ -17,7 +21,9 @@ export default {
     name: 'repositories',
     data() {
         return {
-            repositories: []
+            repositories: [],
+            showError: false,
+            errorMessage: ''
         }
     },
     mounted() {
@@ -25,16 +31,27 @@ export default {
     },
     methods: {
         async getRepositories() {
-            let response = await axios.get(`http://localhost:${SERVER_PORT}/repositories`);
-            this.repositories = response.data;
+            try {
+                let response = await axios.get(`http://localhost:${SERVER_PORT}/repositories`);
+                this.repositories = response.data;
+            } catch(error) {
+                this.showError = true;
+                if (error.response.status === 403) {
+                    this.errorMessage = error.response.data;
+                } else {
+                    this.errorMessage = 'The server appears to be down. Run it with npm start in the command prompt.';
+                }
+            }
         }
     },
     computed: {
         sortedRepositories() {
             let sorted = {};
             Object.keys(this.repositories).sort((a, b) => {
-                if (a.toLowerCase() < b.toLowerCase()) return -1;
-                if (a.toLowerCase() > b.toLowerCase()) return 1;
+                a = a.toLowerCase();
+                b = b.toLowerCase();
+                if (a < b) return -1;
+                if (a > b) return 1;
                 return 0;
             }).forEach(key => {
                 sorted[key] = this.repositories[key];
@@ -52,6 +69,10 @@ export default {
     }
 
     .avatar img {
-        width: 96px;
+        width: 100px;
+    }
+
+    .alert {
+        margin-top: 60px;
     }
 </style>

@@ -26,23 +26,25 @@ app.get('/repositories', async (req, res) => {
             dataToSend[username].avatarUrl = repo.owner.avatar_url;
 
             if (username[0].toLowerCase() === 'a') {
-                dataToSend[username].followers = getFollowersFor(username);
+                dataToSend[username].followers = await getFollowers(repo.owner.followers_url);
             }
         }
     }
 
-    res.json(dataToSend);
+    return res.json(dataToSend);
 });
 
-getFollowersFor = async (username) => {
+getFollowers = async (url) => {
     let response = {};
     try {
-        response = await axios.get(`https://api.github.com/users/${username}/followers`);
+        response = await axios.get(url);
     } catch(error) {
         return `Sorry, we hit our rate limit and can't retrieve the followers for this user. Try again in an hour.`;
     }
 
-    let followers = response.data.map((follower) => follower.login);
+    let followers = response.data.map(follower => { 
+        return follower.login;
+    });
     return followers.join('\n');
 };
 
